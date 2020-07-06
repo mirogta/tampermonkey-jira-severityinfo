@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JIRA Service Desk Severity Info
 // @namespace    http://github.com/mirogta/
-// @version      0.0.1
+// @version      0.0.2
 // @description  Add an explanation to severity levels on JIRA Service Desk issues
 // @author       mirogta
 // @license      MIT
@@ -24,22 +24,31 @@
 
     console.log(`Initialising JIRA Service Desk Tampermonkey Script`);
 
-    const severityDescriptions = {
-        1: 'A critical incident with high impact',
-        2: 'A major incident with significant impact',
-        3: 'A minor incident with low impact',
-        4: 'Bugs or support issues that don\'t impact product usability',
+    const configKeys = {
+        wikiUrl: 'configWikiUrlKey',
+        iframeUrl: 'configIframeUrlKey',
     };
 
-    const configWikiUrlKey = 'configWikiUrlKey';
-
     GM_addStyle(`
-#_severity_info { display: inline-block }
+body._blur::after { background-color: #563d7c; content: ""; display: block; position: absolute; top: 0px; left: 0px; width: 100%; height: 100%; z-index: 1000; opacity: 0.5; }
+#_severity_info { display: inline-block; z-index: 9999 }
+#_severity_info:hover { cursor: pointer }
 #_severity_info::before { content: " \\1F4AC"; margin: 10px }
-#_severity_info span { display: none; position: absolute; width: 320px; background: #eee; padding: 4px; border-radius: 2px; }
+#_severity_info span {
+    display: none;
+    position: absolute;
+    width: 880px;
+    background: #eee;
+    padding: 20px;
+    border-radius: 4px;
+    right: 400px;
+    height: 600px;
+}
 #_severity_info:hover span { display: inline }
+#_severity_info iframe { width: 100%; height: 100%; background-color: #eee }
 ._severity_wrap { justify-content: left }
-#_severity_url { width: 400px; margin: 10px 20px; border: 1px solid #ccc; }
+#_severity_description ul { list-style-type: none; padding-left: 0 }
+._severity_url { display: block; width: 400px; margin: 10px 20px; border: 1px solid #ccc; }
 `);
 
     function addSeverityInfo() {
@@ -50,11 +59,13 @@
         // find the severity field
         // NOTE: the DOM is obfuscated so we can't find it by element id or classname
         // but can find it via this selector
-        const severityButton = document.body.querySelector('button[aria-label="Edit Severity"]');
+        const severityButton = document.body.querySelector('button[aria-label="Edit Assignee"]');
+//        const severityButton = document.body.querySelector('button[aria-label="Edit Severity"]');
         if(null == severityButton) {
             return;
         }
-        const severityLabel = Array.from(document.querySelectorAll('h2')).find(el => el.textContent === 'Severity');
+        const severityLabel = Array.from(document.querySelectorAll('h2')).find(el => el.textContent === 'Assignee');
+//        const severityLabel = Array.from(document.querySelectorAll('h2')).find(el => el.textContent === 'Severity');
         if(null == severityLabel) {
             return;
         }
@@ -74,7 +85,18 @@
         infoEl.append(descriptionEl);
         container.append(infoEl);
 
+        infoEl.addEventListener('click', loadWiki, false);
+        infoEl.addEventListener('mouseover', function() {document.body.classList.add('_blur');}, false);
+        infoEl.addEventListener('mouseout', function() {document.body.classList.remove('_blur');}, false);
+
         updateSeverityDescription();
+    }
+
+    function loadWiki() {
+        const wikiUrl = GM_getValue(configKeys.wikiUrl);
+        if(wikiUrl) {
+            window.open(wikiUrl, '_severity_link');
+        }
     }
 
     function updateSeverityDescription() {
@@ -82,15 +104,11 @@
         if(null == descriptionEl) {
             return;
         }
-        const severityLevel = descriptionEl.dataset.severityLevel;
-        const title = severityDescriptions[severityLevel];
-        if(title) {
-            let severityHeader = `Severity Level ${severityLevel}`;
-            const severityUrl = GM_getValue(configWikiUrlKey);
-            if(severityUrl) {
-                severityHeader = `<a href="${severityUrl}" target="_severity_link">${severityHeader} (link)</a>`;
-            }
-            descriptionEl.innerHTML = `${severityHeader}:<br>${title}`;
+        const iframeUrl = GM_getValue(configKeys.iframeUrl);
+        if(iframeUrl) {
+            descriptionEl.innerHTML = `<iframe src="${iframeUrl}"></iframe>`;;
+        } else {
+            descriptionEl.innerHTML = 'Please configure the severity URLs in the Settings…';
         }
     }
 
@@ -108,28 +126,44 @@
             const container = settingsPopup.parentElement;
             const configHeaderEl = document.createElement('div');
             configHeaderEl.id = '_severity_config';
-            configHeaderEl.innerText = 'Severity Info URL'
+            configHeaderEl.innerText = 'Severity Info URLs'
             configHeaderEl.className = personalSettings.className;
+
             const configEl = document.createElement('input');
-            configEl.id = '_severity_url';
-            configEl.placeholder = "Please enter URL to a page explaning the severity levels…";
+            configEl.className = '_severity_url';
+            configEl.placeholder = "Please enter Severity Levels wiki URL…";
+            configEl.dataset.configKey = configKeys.wikiUrl;
             configEl.addEventListener('change', saveConfig, false);
 
-            const content = GM_getValue(configWikiUrlKey);
+            const configIframeEl = document.createElement('input');
+            configIframeEl.className = '_severity_url';
+            configIframeEl.placeholder = "Please enter Severity Levels iframe URL…";
+            configIframeEl.dataset.configKey = configKeys.iframeUrl;
+            configIframeEl.addEventListener('change', saveConfig, false);
+
+            const content = GM_getValue(configKeys.wikiUrl);
             if(content) {
-                console.log(`- found severity config URL: ${content}`);
+                console.log(`- found severity wiki URL: ${content}`);
                 configEl.value = content;
+            }
+
+            const iframeUrl = GM_getValue(configKeys.iframeUrl);
+            if(iframeUrl) {
+                console.log(`- found severity iframe URL: ${iframeUrl}`);
+                configIframeEl.value = iframeUrl;
             }
 
             container.append(configHeaderEl);
             container.append(configEl);
+            container.append(configIframeEl);
         }
     }
 
     function saveConfig(event) {
         const content = event.target.value;
-        GM_setValue(configWikiUrlKey, content);
-        console.log(`- saved severity config URL: ${content}`);
+        const key = event.target.dataset.configKey;
+        GM_setValue(key, content);
+        console.log(`- saved severity ${key}: ${content}`);
 
         updateSeverityDescription();
     }

@@ -4,16 +4,20 @@ Tampermonkey script to add severity info popup to JIRA Service Desk issues.
 
 ## What does it do
 
-Adds an info icon next to Severity field on JIRA Service Desk issues.
+Adds a Severity info icon next to Severity field on JIRA Service Desk issues.
 
-When you mouse over the info icon, you'll see the Severity level explanation.
+When you mouse over the info icon, you'll see the Severity levels page in an iframe.
 
-### Advanced Usage
+When you click on the icon, a new page will open with the Severity levels wiki page.
 
-The script also adds a configurable link to the JIRA's Settings popup.
+### Settings
+
+The script requires configuration in the JIRA's Settings popup.
 
 * Click on the _Settings_ in JIRA Service Desk
-* Enter a link to a page explaining the severity levels under "SEVERITY INFO URL"
+* Under the "SEVERITY INFO URLS"
+  * Enter a link to a wiki page explaining the severity levels - this will be loaded in a new tab when you click on the Severity info icon
+  * Enter a link to an page which contains the Severity Levels - this will be embedded in an iframe and displayed when you mouse over the Severity info icon
 
 ## How to install
 
