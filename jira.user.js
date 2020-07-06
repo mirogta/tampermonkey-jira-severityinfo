@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JIRA Service Desk Severity Info
 // @namespace    http://github.com/mirogta/
-// @version      0.0.2
+// @version      0.0.3
 // @description  Add an explanation to severity levels on JIRA Service Desk issues
 // @author       mirogta
 // @license      MIT
@@ -59,13 +59,11 @@ body._blur::after { background-color: #563d7c; content: ""; display: block; posi
         // find the severity field
         // NOTE: the DOM is obfuscated so we can't find it by element id or classname
         // but can find it via this selector
-        const severityButton = document.body.querySelector('button[aria-label="Edit Assignee"]');
-//        const severityButton = document.body.querySelector('button[aria-label="Edit Severity"]');
+        const severityButton = document.body.querySelector('button[aria-label="Edit Severity"]');
         if(null == severityButton) {
             return;
         }
-        const severityLabel = Array.from(document.querySelectorAll('h2')).find(el => el.textContent === 'Assignee');
-//        const severityLabel = Array.from(document.querySelectorAll('h2')).find(el => el.textContent === 'Severity');
+        const severityLabel = Array.from(document.querySelectorAll('h2')).find(el => el.textContent === 'Severity');
         if(null == severityLabel) {
             return;
         }
