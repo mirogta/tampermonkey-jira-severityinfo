@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JIRA Service Desk Severity Info
 // @namespace    http://github.com/mirogta/
-// @version      0.0.3
+// @version      0.0.4
 // @description  Add an explanation to severity levels on JIRA Service Desk issues
 // @author       mirogta
 // @license      MIT
@@ -29,11 +29,13 @@
         iframeUrl: 'configIframeUrlKey',
     };
 
+    let preventDuplicate = false;
+
     GM_addStyle(`
-body._blur::after { background-color: #563d7c; content: ""; display: block; position: absolute; top: 0px; left: 0px; width: 100%; height: 100%; z-index: 1000; opacity: 0.5; }
-#_severity_info { display: inline-block; z-index: 9999 }
+body._blur::after { background-color: #563d7c; content: ""; display: block; position: fixed; top: 0px; left: 0px; width: 100%; height: 100%; z-index: 1000; opacity: 0.5; }
+#_severity_info { z-index: 9999; position: absolute; }
 #_severity_info:hover { cursor: pointer }
-#_severity_info::before { content: " \\1F4AC"; margin: 10px }
+#_severity_info::before { content: " \\1F4AC"; padding: 10px }
 #_severity_info span {
     display: none;
     position: absolute;
@@ -41,7 +43,7 @@ body._blur::after { background-color: #563d7c; content: ""; display: block; posi
     background: #eee;
     padding: 20px;
     border-radius: 4px;
-    right: 400px;
+    right: 100px;
     height: 600px;
 }
 #_severity_info:hover span { display: inline }
@@ -51,37 +53,54 @@ body._blur::after { background-color: #563d7c; content: ""; display: block; posi
 ._severity_url { display: block; width: 400px; margin: 10px 20px; border: 1px solid #ccc; }
 `);
 
-    function addSeverityInfo() {
-        const noteEl = document.getElementById('_severity_info');
-        if(noteEl) {
+    function ensureSeverityInfo() {
+        if(preventDuplicate === true || document.getElementById('_severity_info')) {
             return;
         }
+        preventDuplicate = true;
+
+        // delay loading, because JIRA elements are loading async
+        // and elements' positions are jumping up/down
+        setTimeout(addSeverityInfo, 2000);
+    }
+
+    function addSeverityInfo() {
         // find the severity field
         // NOTE: the DOM is obfuscated so we can't find it by element id or classname
         // but can find it via this selector
         const severityButton = document.body.querySelector('button[aria-label="Edit Severity"]');
         if(null == severityButton) {
+            preventDuplicate = false;
             return;
         }
         const severityLabel = Array.from(document.querySelectorAll('h2')).find(el => el.textContent === 'Severity');
         if(null == severityLabel) {
+            preventDuplicate = false;
             return;
         }
-        const severityLevel = parseInt(severityButton.parentElement.innerText, 0);
         const container = severityLabel.parentElement;
         container.classList.add('_severity_wrap');
         if(null == container) {
+            preventDuplicate = false;
             return;
         }
         console.log(`- adding severity info`);
+        const severityLevel = parseInt(severityButton.parentElement.innerText, 0);
         const infoEl = document.createElement('div');
         infoEl.id = '_severity_info';
         const descriptionEl = document.createElement('span');
         descriptionEl.id = '_severity_description';
         descriptionEl.dataset.severityLevel = severityLevel;
 
+        const bodyRect = document.body.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const offsetTop = containerRect.top - bodyRect.top;
+        const offsetLeft = containerRect.left - bodyRect.left;
+        infoEl.style.top = `${offsetTop}px`;
+        infoEl.style.left = `${offsetLeft + severityLabel.offsetWidth}px`;
+
         infoEl.append(descriptionEl);
-        container.append(infoEl);
+        document.body.append(infoEl);
 
         infoEl.addEventListener('click', loadWiki, false);
         infoEl.addEventListener('mouseover', function() {document.body.classList.add('_blur');}, false);
@@ -111,9 +130,8 @@ body._blur::after { background-color: #563d7c; content: ""; display: block; posi
     }
 
     function addSeveritySettings() {
-        // find the settings popup
-        const severityConfigEl = document.getElementById('_severity_config');
-        if(severityConfigEl) {
+        // don't add the settings popup if already present
+        if(document.getElementById('_severity_config')) {
             return;
         }
         const settingsPopup = Array.from(document.querySelectorAll('h3')).find(el => el.textContent === 'Settings');
@@ -170,7 +188,7 @@ body._blur::after { background-color: #563d7c; content: ""; display: block; posi
     let ob = new window.MutationObserver(function() {
         console.debug(`- content changed`);
         addSeveritySettings();
-        addSeverityInfo();
+        ensureSeverityInfo();
     });
 
     ob.observe(document, {
