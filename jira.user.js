@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JIRA Service Desk Severity Info
 // @namespace    http://github.com/mirogta/
-// @version      0.0.4
+// @version      0.0.5
 // @description  Add an explanation to severity levels on JIRA Service Desk issues
 // @author       mirogta
 // @license      MIT
@@ -61,7 +61,7 @@ body._blur::after { background-color: #563d7c; content: ""; display: block; posi
 
         // delay loading, because JIRA elements are loading async
         // and elements' positions are jumping up/down
-        setTimeout(addSeverityInfo, 2000);
+        setTimeout(addSeverityInfo, 4000);
     }
 
     function addSeverityInfo() {
