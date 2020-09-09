@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name         JIRA Service Desk Severity Info
 // @namespace    http://github.com/mirogta/
-// @version      0.0.5
+// @version      0.0.6
 // @description  Add an explanation to severity levels on JIRA Service Desk issues
 // @author       mirogta
 // @license      MIT
 // @homepageURL  https://github.com/mirogta/tampermonkey-jira-severityinfo
 // @match        https://*.atlassian.net/browse/*
 // @match        https://*.atlassian.net/jira/servicedesk/*
+// @match        https://*.atlassian.net/secure/*
 // @inject-into  content
 // @grant        GM_getValue
 // @grant        GM_setValue
